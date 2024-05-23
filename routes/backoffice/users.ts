@@ -1,0 +1,15 @@
+/////////////////////////////////////////////////
+//////////  IMPORTATIONS & DEFINITIONS  /////////
+/////////////////////////////////////////////////
+
+// Express importation
+import express, { Express } from 'express';
+const api: Express = express();
+
+
+
+
+export default api;
+
+
+
