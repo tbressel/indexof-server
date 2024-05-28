@@ -9,6 +9,6 @@
       "sourceMap": false,
       "forceConsistentCasingInFileNames": true
     },
-    "include": ["./*.ts"],
+    "include": ["./*.ts", "modules/notifications.ts"],
     "exclude": ["node_modules"]
   }
