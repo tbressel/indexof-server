@@ -7,8 +7,11 @@ interface NotificationMessages {
 }
 
 interface JsonResponse {
+    res: any,
+    statusNumber: number,
     messageKey: string;
     message: string;
+    state?: boolean;
 }
 
 //////////////////////////////////////////////////
@@ -26,11 +29,14 @@ function getJsonResponse(
     res: any,
     statusNumber :number,
     messageKey: keyof NotificationMessages,
-    notificationMessages: NotificationMessages): JsonResponse {
+    notificationMessages: NotificationMessages,
+    state?: boolean): JsonResponse
+     {
 
     return res.status(statusNumber).json({
         messageKey: messageKey,
         message: notificationMessages[messageKey],
+        state: state
     });
 }
 
@@ -42,11 +48,12 @@ function getJsonResponse(
 const notificationMessages: NotificationMessages = {
     "missing-email": "The request misses the email",
     "invalid-email": "The email is not valid",
-    "email-success": "The email is exists in the database",
-    "email-failure": "The email dosn't exist in the database",
     "dbconnect-error": "Database connection has failed",
+    "maxconnect-reached": "Too many connection to the database, please try later",
+    "request-failure": "The request has failed",
+    "email-failure": "The email dosn't exist in the database",
+    "email-success": "The email exists in the database",
     "dbconnect-success": "Connection to the database is done !",
-    "maxconnect-reached": "Too many connection to the database, please try later"
 }
 
 

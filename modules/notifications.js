@@ -13,10 +13,11 @@
  * @param notificationMessages :Contains the message corresponding to the key
  * @returns
  */
-function getJsonResponse(res, statusNumber, messageKey, notificationMessages) {
+function getJsonResponse(res, statusNumber, messageKey, notificationMessages, state) {
     return res.status(statusNumber).json({
         messageKey: messageKey,
         message: notificationMessages[messageKey],
+        state: state
     });
 }
 //////////////////////////////////////////////////
@@ -25,11 +26,12 @@ function getJsonResponse(res, statusNumber, messageKey, notificationMessages) {
 const notificationMessages = {
     "missing-email": "The request misses the email",
     "invalid-email": "The email is not valid",
-    "email-success": "The email is exists in the database",
-    "email-failure": "The email dosn't exist in the database",
     "dbconnect-error": "Database connection has failed",
+    "maxconnect-reached": "Too many connection to the database, please try later",
+    "request-failure": "The request has failed",
+    "email-failure": "The email dosn't exist in the database",
+    "email-success": "The email exists in the database",
     "dbconnect-success": "Connection to the database is done !",
-    "maxconnect-reached": "Too many connection to the database, please try later"
 };
 module.exports = {
     notificationMessages,
