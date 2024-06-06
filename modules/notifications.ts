@@ -54,6 +54,11 @@ const notificationMessages: NotificationMessages = {
     "email-failure": "The email dosn't exist in the database",
     "email-success": "The email exists in the database",
     "dbconnect-success": "Connection to the database is done !",
+    "missing-datas": "The request misses datas",
+    "datas-failure": "The datas are not valid",
+    "datas-success": "The datas are valid",
+    "compare-failure": "Failure during the comparison",
+    "password-failure": "The password is not valid",
 }
 
 

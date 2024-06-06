@@ -25,12 +25,18 @@ const mysql_1 = __importDefault(require("mysql"));
 const dbconnect = mysql_1.default.createPool(DatabaseConfig_1.default.getDbConfig());
 // Validator library importation to check and clean datas from request
 const validator_1 = __importDefault(require("validator"));
+// Import Bcrypt library to hash password
+const bcryptjs_1 = __importDefault(require("bcryptjs"));
+// Import to generate a token
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 /////////////////////////////////////////////////
 ////////////  MODULES  IMPORTATIONS   ///////////
 /////////////////////////////////////////////////
 // To manage errors and success messages
 const notificationMessages = require('../../modules/notifications').notificationMessages;
 const { getJsonResponse, JsonResponse } = require('../../modules/notifications');
+const pool_1 = require("../../modules/pool");
+const JwtConfig_1 = __importDefault(require("../../JwtConfig"));
 ////////////////////////////////////////////////////
 ////////////////////////////////////////////////////
 //////////////     CHECK WITH EMAIL   //////////////
@@ -60,13 +66,8 @@ api.post('/check-email', (req, res) => {
             return;
         }
         console.log("Connexion à la base de donnée");
-        // Get stat about connection states
-        const allConnections = dbconnect._allConnections.length;
-        console.log("Nombres de connexions : ", allConnections);
-        const connectionsLimit = dbconnect.config.connectionLimit;
-        console.log("Nombre max autorisé : ", connectionsLimit);
         // Check if we reached the maximum of connection allowed
-        if (allConnections >= connectionsLimit) {
+        if ((0, pool_1.isMaxConnectionReached)(dbconnect)) {
             getJsonResponse(res, 500, "maxconnect-reached", notificationMessages, false);
             connection.release();
             return;
@@ -93,7 +94,87 @@ api.post('/check-email', (req, res) => {
                 connection.release();
             }
         });
-        console.log('connexion relaché, connexion restante : ', allConnections);
+        console.log('connexion relaché');
+    });
+});
+api.post('/check-password', (req, res) => {
+    // read the datas from the POST request
+    let { user_email, user_password } = req.body;
+    // check if email and password it not empty
+    if (!user_email || !user_password) {
+        getJsonResponse(res, 500, "missing-datas", notificationMessages, false);
+        return;
+    }
+    // clean email against XSS failure
+    user_email = validator_1.default.blacklist(user_email, '\\<\\>\\{\\}\\[\\]\\(\\)');
+    user_email = validator_1.default.escape(user_email);
+    // clean password against XSS failure
+    user_password = validator_1.default.blacklist(user_password, '\\<\\>\\{\\}\\[\\]\\(\\)');
+    user_password = validator_1.default.escape(user_password);
+    // check if email is valid and the right format
+    if (!validator_1.default.isEmail(user_email)) {
+        getJsonResponse(res, 500, "invalid-email", notificationMessages, false);
+        return;
+    }
+    // Connect to the database
+    dbconnect.getConnection((error, connection) => {
+        // Check if we can connect to the database
+        if (error) {
+            getJsonResponse(res, 500, "dbconnect-error", notificationMessages, false);
+            return;
+        }
+        console.log("Connexion à la base de donnée");
+        // Prepare query to check if the email exists
+        const sql = "SELECT user_email, user_password FROM user_ WHERE user_email = ?";
+        // Execute the query
+        connection.query(sql, [user_email], (error, results) => {
+            if (error) {
+                getJsonResponse(res, 500, "request-failure", notificationMessages, false);
+                connection.release();
+                return;
+            }
+            console.log("Mon resutlat : ", results);
+            const queryResultLength = results.length;
+            const queryResults = results;
+            // Check if email IS or NOT in the database
+            if (queryResultLength === 0 || !queryResultLength || queryResultLength === undefined) {
+                getJsonResponse(res, 401, "datas-failure", notificationMessages, false);
+                connection.release();
+                return;
+            }
+            else {
+                console.log("resultat : ", queryResults[0].user_email);
+                console.log("resultat : ", queryResults[0].user_password);
+                // compare the password with the hashed password
+                const user_password_hashed = queryResults[0].user_password;
+                bcryptjs_1.default.compare(user_password, user_password_hashed, (error, isMatch) => {
+                    if (error) {
+                        getJsonResponse(res, 500, "compare-failure", notificationMessages, false);
+                        connection.release();
+                        return;
+                    }
+                    // If the password is not valid
+                    if (!isMatch) {
+                        getJsonResponse(res, 401, "password-failure", notificationMessages, false);
+                        connection.release();
+                        return;
+                    }
+                    else {
+                        // Build a json web token 
+                        const jwtSecretKeys = JwtConfig_1.default.getSecretKeys();
+                        console.log(jwtSecretKeys.secretKey);
+                        if (jwtSecretKeys.secretKey) {
+                            const sessionToken = jsonwebtoken_1.default.sign({
+                                user_email: queryResults[0].user_email,
+                            }, jwtSecretKeys.secretKey, { expiresIn: '1h' });
+                        }
+                        // If the password is valid
+                        getJsonResponse(res, 200, "datas-success", notificationMessages, true);
+                        connection.release();
+                    }
+                });
+            }
+        });
     });
 });
 exports.default = api;
